@@ -1,0 +1,109 @@
+services:
+  # 后端服务
+  medusa-backend:
+    build: ./backend
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=production
+      - PORT=9000
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL}
+      - MEDUSA_ADMIN_CORS=${MEDUSA_ADMIN_CORS}
+      - MEDUSA_STORE_CORS=${MEDUSA_STORE_CORS}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SEED_DATABASE=false
+      - PAYMENT_GATEWAY=${PAYMENT_GATEWAY}
+      - PAYMENT_SECRET_KEY=${PAYMENT_SECRET_KEY}
+      - PAYMENT_NOTIFY_URL=${PAYMENT_NOTIFY_URL}
+      - PAYMENT_RETURN_URL=${PAYMENT_RETURN_URL}
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - medusa-network
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: '0.5'
+    restart: unless-stopped
+
+  # 前端服务
+  medusa-frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXT_PUBLIC_STRIPE_KEY=${NEXT_PUBLIC_STRIPE_KEY}
+      - NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME}
+    depends_on:
+      - medusa-backend
+    networks:
+      - medusa-network
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+          cpus: '0.3'
+    restart: unless-stopped
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=medusa
+      - POSTGRES_USER=medusa
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - medusa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa -d medusa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+          cpus: '0.3'
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - medusa-network
+    deploy:
+      resources:
+        limits:
+          memory: 50M
+          cpus: '0.2'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  medusa-network:
+    driver: bridge

@@ -1,0 +1,75 @@
+services:
+  # 后端服务
+  medusa-backend:
+    build: ./backend
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=development
+      - PORT=9000
+      - DATABASE_URL=postgresql://medusa:medusa123@postgres:5432/medusa
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=local-jwt-secret-12345
+      - COOKIE_SECRET=local-cookie-secret-12345
+      - MEDUSA_BACKEND_URL=http://localhost:9000
+      - MEDUSA_ADMIN_CORS=http://localhost:3000,http://localhost:7001
+      - MEDUSA_STORE_CORS=http://localhost:3000,http://localhost:8000
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=test@gmail.com
+      - SMTP_PASS=test-password
+      - ENCRYPTION_KEY=local-encryption-key-change-in-prod-32chars
+      - SEED_DATABASE=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - medusa-network
+
+  # 前端服务
+  medusa-frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
+    depends_on:
+      - medusa-backend
+    networks:
+      - medusa-network
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=medusa
+      - POSTGRES_USER=medusa
+      - POSTGRES_PASSWORD=medusa123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - medusa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa -d medusa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - medusa-network
+
+volumes:
+  postgres_data:
+
+networks:
+  medusa-network:
+    driver: bridge

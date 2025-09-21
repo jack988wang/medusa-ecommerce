@@ -1,0 +1,38 @@
+{
+  "name": "medusa-frontend-pages",
+  "version": "1.0.0",
+  "description": "Medusa Next.js Storefront for Cloudflare Pages",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next export",
+    "start": "next start -p 3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@medusajs/medusa-js": "^6.1.0",
+    "autoprefixer": "^10.4.0",
+    "axios": "^1.6.0",
+    "next": "^14.0.0",
+    "postcss": "^8.4.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "tailwindcss": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/argparse": "^2.0.17",
+    "@types/json5": "^0.0.30",
+    "@types/node": "^20.0.0",
+    "@types/prop-types": "^15.7.15",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/validator": "^13.15.3",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
