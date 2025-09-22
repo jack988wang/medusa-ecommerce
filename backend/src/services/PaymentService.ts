@@ -135,7 +135,7 @@ export class PaymentService {
         price: price.toString(),
         sign,
         param,
-        isHtml: '1', // 自动跳转到支付页面
+        isHtml: '0', // 自动跳转到支付页面
         returnUrl: this.config.returnUrl,
         notifyUrl: this.config.notifyUrl
       });
