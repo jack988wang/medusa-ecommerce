@@ -97,11 +97,8 @@ export default function PurchasePage() {
       const result = await response.json()
 
       if (result.success && result.payUrl) {
-        // 显示支付引导信息
-        alert(`订单创建成功！\n订单号：${result.order.order_number}\n即将跳转到支付页面...`)
-        
-        // 跳转到第三方支付页面
-        window.location.href = result.payUrl
+        // 跳转到支付中转页，避免直接跨域跳转被拦截
+        router.push(`/payment/redirect?url=${encodeURIComponent(result.payUrl)}`)
       } else {
         setError(result.error || '创建订单失败')
       }
