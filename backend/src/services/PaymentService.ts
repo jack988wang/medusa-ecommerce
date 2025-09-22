@@ -126,7 +126,7 @@ export class PaymentService {
         price: price.toString(),
         sign,
         param,
-        isHtml: '0', // 优先 JSON
+        isHtml: '1', // 让平台返回H5收银台页面
         returnUrl: this.config.returnUrl,
         notifyUrl: this.config.notifyUrl
       });
