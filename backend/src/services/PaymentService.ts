@@ -1,6 +1,14 @@
 // @ts-ignore
-const crypto = require('crypto');
-import axios from 'axios';
+const axios = require('axios');
+// @ts-ignore
+const { URLSearchParams } = require('url');
+// Ambient declarations for Node globals in this project context
+// @ts-ignore
+declare var process: any;
+// @ts-ignore
+declare var Buffer: any;
+// @ts-ignore
+declare var console: any;
 
 export interface PaymentConfig {
   baseUrl: string;
@@ -61,6 +69,10 @@ export class PaymentService {
 
   // 生成MD5签名
   private generateMD5(input: string): string {
+    // 运行时由蓝鲸平台规则决定，这里仅做占位，真实签名在 createOrderSign 中完成
+    // 在 Node 环境我们使用内置 crypto
+    // @ts-ignore
+    const crypto = require('crypto');
     return crypto.createHash('md5').update(input).digest('hex');
   }
 
@@ -99,34 +111,13 @@ export class PaymentService {
     try {
       const payId = orderData.orderId;
       const type = orderData.paymentType === 'wechat' ? 1 : 2;
-      const price = orderData.amount / 100; // 转换为元
+      const price = orderData.amount / 100; // 元
       const param = JSON.stringify({
         productId: orderData.productId,
         contactInfo: orderData.contactInfo,
         orderId: orderData.orderId
       });
 
-      // 开发模式：返回模拟支付URL
-      if (this.isDevelopment) {
-        console.log('Development mode: Creating mock payment order:', {
-          payId,
-          type: orderData.paymentType,
-          price,
-          productId: orderData.productId,
-          contactInfo: orderData.contactInfo
-        });
-
-        // 模拟支付页面URL，实际会跳转到我们的支付模拟页面
-        const mockPayUrl = `http://localhost:3000/payment/mock?payId=${payId}&type=${type}&price=${price}&param=${encodeURIComponent(param)}`;
-        
-        return {
-          success: true,
-          payUrl: mockPayUrl,
-          cloudOrderId: `MOCK_${payId}_${Date.now()}`
-        };
-      }
-
-      // 生产模式：调用真实的第三方API
       const sign = this.createOrderSign(payId, param, type, price);
 
       const requestData = new URLSearchParams({
@@ -135,48 +126,58 @@ export class PaymentService {
         price: price.toString(),
         sign,
         param,
-        isHtml: '0', // 自动跳转到支付页面
+        isHtml: '0', // 优先 JSON
         returnUrl: this.config.returnUrl,
         notifyUrl: this.config.notifyUrl
       });
 
-      console.log('Creating payment order:', {
-        payId,
-        type,
-        price,
-        sign,
-        param: param.substring(0, 50) + '...'
-      });
-
-      const response = await axios.post<CreateOrderResponse>(
+      const response = await axios.post(
         `${this.config.baseUrl}/createOrder`,
         requestData,
         {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          timeout: 10000
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 10000,
+          responseType: 'arraybuffer'
         }
       );
 
-      if (response.data.code === 1 && response.data.data) {
+      // 先尝试 JSON
+      try {
+        const text = Buffer.from(response.data as any, 'binary').toString('utf8');
+        const maybeJson = JSON.parse(text);
+        if (maybeJson && maybeJson.code === 1 && maybeJson.data && maybeJson.data.payUrl) {
+          return {
+            success: true,
+            payUrl: maybeJson.data.payUrl,
+            cloudOrderId: maybeJson.data.orderId
+          };
+        }
+      } catch (_) {}
+
+      // HTML 回退（含 GBK）
+      const htmlUtf8 = Buffer.from(response.data as any, 'binary').toString('utf8');
+      let html = htmlUtf8;
+      if (/charset=gbk|charset=gb2312/i.test(htmlUtf8)) {
+        try {
+          // @ts-ignore
+          const iconv = require('iconv-lite');
+          html = iconv.decode(Buffer.from(response.data as any), 'gbk');
+        } catch (_) {}
+      }
+      const match = html.match(/window\.location\.href\s*=\s*'([^']+)'/i);
+      if (match && match[1]) {
+        const payUrl = `${this.config.baseUrl}${match[1]}`;
         return {
           success: true,
-          payUrl: response.data.data.payUrl,
-          cloudOrderId: response.data.data.orderId
-        };
-      } else {
-        return {
-          success: false,
-          error: response.data.msg || '创建支付订单失败'
+          payUrl,
+          cloudOrderId: (payUrl.split('orderId=')[1] || '').split('&')[0]
         };
       }
+
+      return { success: false, error: '创建支付订单失败（返回不可解析）' };
     } catch (error) {
-      console.error('Payment order creation failed:', error);
-      return {
-        success: false,
-        error: '网络错误，请重试'
-      };
+      console.log('Payment order creation failed:', error);
+      return { success: false, error: '网络错误，请重试' };
     }
   }
 
@@ -191,11 +192,9 @@ export class PaymentService {
     error?: string;
   } {
     try {
-      // 开发模式：跳过签名验证
       if (this.isDevelopment && callback.sign === 'mock_signature') {
         console.log('Development mode: Skipping signature verification for mock payment');
       } else {
-        // 生产模式：验证签名
         const isValidSign = this.verifyCallbackSign(
           callback.payId,
           callback.param,
@@ -204,24 +203,16 @@ export class PaymentService {
           callback.reallyPrice,
           callback.sign
         );
-
         if (!isValidSign) {
-          return {
-            success: false,
-            error: 'Invalid signature'
-          };
+          return { success: false, error: 'Invalid signature' };
         }
       }
 
-      // 解析参数
       let orderData;
       try {
         orderData = JSON.parse(callback.param);
       } catch (e) {
-        return {
-          success: false,
-          error: 'Invalid param format'
-        };
+        return { success: false, error: 'Invalid param format' };
       }
 
       return {
@@ -233,81 +224,27 @@ export class PaymentService {
         }
       };
     } catch (error) {
-      console.error('Callback verification failed:', error);
-      return {
-        success: false,
-        error: 'Verification failed'
-      };
+      console.log('Callback verification failed:', error);
+      return { success: false, error: 'Verification failed' };
     }
   }
 
   // 关闭订单
-  async closeOrder(cloudOrderId: string): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async closeOrder(cloudOrderId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const sign = this.closeOrderSign(cloudOrderId);
-
-      const requestData = new URLSearchParams({
-        orderId: cloudOrderId,
-        sign
-      });
-
+      const requestData = new URLSearchParams({ orderId: cloudOrderId, sign });
       const response = await axios.post(
         `${this.config.baseUrl}/closeOrder`,
         requestData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          timeout: 5000
-        }
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 }
       );
-
-      return {
-        success: response.data.code === 1
-      };
+      const data = response.data;
+      if (data && data.code === 1) return { success: true };
+      return { success: false, error: data?.msg || '关闭订单失败' };
     } catch (error) {
-      console.error('Close order failed:', error);
-      return {
-        success: false,
-        error: 'Failed to close order'
-      };
-    }
-  }
-
-  // 查询订单状态
-  async checkOrderStatus(cloudOrderId: string): Promise<{
-    success: boolean;
-    isPaid?: boolean;
-    callbackUrl?: string;
-    error?: string;
-  }> {
-    try {
-      const response = await axios.get(
-        `${this.config.baseUrl}/checkOrder?orderId=${cloudOrderId}`,
-        { timeout: 5000 }
-      );
-
-      if (response.data.code === 1) {
-        return {
-          success: true,
-          isPaid: true,
-          callbackUrl: response.data.data
-        };
-      } else {
-        return {
-          success: true,
-          isPaid: false
-        };
-      }
-    } catch (error) {
-      console.error('Check order status failed:', error);
-      return {
-        success: false,
-        error: 'Failed to check order status'
-      };
+      console.log('Close order failed:', error);
+      return { success: false, error: '网络错误，请重试' };
     }
   }
 }
