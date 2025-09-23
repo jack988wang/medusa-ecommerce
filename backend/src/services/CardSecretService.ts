@@ -1,5 +1,12 @@
 // @ts-ignore
 const crypto = require('crypto');
+// Ambient declarations for Node globals in this project context
+// @ts-ignore
+declare var process: any;
+// @ts-ignore
+declare var require: any;
+// @ts-ignore
+declare var console: any;
 import { CardSecret } from '../models/CardSecret';
 
 export class CardSecretService {
@@ -186,26 +193,29 @@ export class CardSecretService {
     error?: string;
   }> {
     try {
-      console.log(`Looking for card secret: orderId=${orderId}, productId=${productId}`);
-      
-      // 直接分配一个可用的卡密（简化逻辑）
-      const availableSecret = await this.findAvailableCardSecret(productId);
-      
-      if (availableSecret) {
+      console.log(`Looking for assigned card secret: orderId=${orderId}, productId=${productId}`);
+
+      // 严格按订单查询已分配的卡密，避免重复分配
+      const { DatabaseService } = require('./DatabaseService');
+      const databaseService = new DatabaseService();
+      const allSecrets = await databaseService.getCardSecrets();
+      const assigned = allSecrets.find((s: any) => s.order_id === orderId && s.product_id === productId);
+
+      if (!assigned) {
         return {
-          success: true,
-          cardSecret: {
-            account: availableSecret.account,
-            password: this.decryptCardSecret(availableSecret.password),
-            additionalInfo: availableSecret.additional_info,
-            qualityGuarantee: availableSecret.quality_guarantee
-          }
+          success: false,
+          error: '未找到该订单的已分配卡密（可能尚未发放或订单未支付）'
         };
       }
 
       return {
-        success: false,
-        error: '该商品暂无库存'
+        success: true,
+        cardSecret: {
+          account: assigned.account,
+          password: this.decryptCardSecret(assigned.password),
+          additionalInfo: assigned.additional_info,
+          qualityGuarantee: assigned.quality_guarantee
+        }
       };
     } catch (error) {
       console.error('Failed to get order card secret:', error);
