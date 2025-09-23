@@ -10,7 +10,7 @@ import { DEFAULT_CATEGORIES } from './models/Product'
 import { CardSecretService } from './services/CardSecretService'
 import { OrderService } from './services/OrderService'
 import { PaymentService } from './services/PaymentService'
-import { DatabaseService } from './services/DatabaseService'
+import { DatabaseAdapterService } from './services/DatabaseAdapter'
 
 const PORT = process.env.PORT || 9000
 
@@ -65,7 +65,7 @@ async function start() {
   const cardSecretService = new CardSecretService()
   const orderService = new OrderService()
   const paymentService = new PaymentService()
-  const databaseService = new DatabaseService()
+  const databaseService = new DatabaseAdapterService()
 
   // Middleware
   app.use(helmet())
@@ -92,11 +92,26 @@ async function start() {
   }))
 
   // 健康检查
-  app.get('/health', (req: Request, res: Response) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    })
+  app.get('/health', async (req: Request, res: Response) => {
+    try {
+      const dbHealth = await databaseService.healthCheck()
+      const dbType = databaseService.getDatabaseType()
+      
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: {
+          type: dbType,
+          status: dbHealth ? 'connected' : 'disconnected'
+        }
+      })
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        error: 'Database health check failed'
+      })
+    }
   })
 
   // 分类 API
@@ -596,12 +611,16 @@ async function start() {
     res.json({ message: "Store API endpoint - visit /api/products for products" })
   })
 
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, async () => {
+    const dbType = databaseService.getDatabaseType()
+    const dbHealth = await databaseService.healthCheck()
+    
     console.log(`🚀 Medusa Card Secret Store running on port ${PORT}`)
     console.log(`📊 Admin: http://localhost:${PORT}/api/admin/stats`)
     console.log(`🛒 Store: http://localhost:${PORT}/api/products`)
     console.log(`🏥 Health: http://localhost:${PORT}/health`)
-    console.log(`🔑 Card Secret System: Ready (Memory Mode)`)
+    console.log(`🗄️ Database: ${dbType} (${dbHealth ? 'Connected' : 'Disconnected'})`)
+    console.log(`🔑 Card Secret System: Ready`)
   })
 
   // 优雅关闭处理

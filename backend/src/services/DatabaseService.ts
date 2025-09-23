@@ -1,58 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-
-export interface DatabaseRecord {
-  id: string
-  created_at: Date
-  updated_at: Date
-}
-
-export interface Product extends DatabaseRecord {
-  title: string
-  description: string
-  category: string
-  subcategory: string
-  price: number
-  currency: string
-  stock: number
-  sold_count: number
-  quality_guarantee: string
-  attributes: string[]
-  status: string
-}
-
-export interface CardSecret extends DatabaseRecord {
-  product_id: string
-  account: string
-  password: string
-  additional_info?: string
-  quality_guarantee: string
-  status: string
-  sold_at?: Date
-  order_id?: string
-}
-
-export interface Order extends DatabaseRecord {
-  order_number: string
-  product_id: string
-  product_title: string
-  quantity: number
-  unit_price: number
-  total_amount: number
-  currency: string
-  contact_info: string
-  payment_method?: string
-  payment_status: string
-  payment_transaction_id?: string
-  card_secret_delivered_at?: Date
-  expires_at?: Date
-  card_secret?: {
-    account: string
-    password: string
-    additionalInfo?: string
-    qualityGuarantee: string
-  }
-}
+import { Product, CardSecret, Order } from '../types/database'
 
 export class DatabaseService {
   private dataDir: string

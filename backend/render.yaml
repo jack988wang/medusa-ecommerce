@@ -42,6 +42,12 @@ services:
         generateValue: true
       - key: SEED_DATABASE
         value: false
+      - key: SUPABASE_URL
+        value: https://your-project.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: your-anon-key
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: your-service-role-key
     healthCheckPath: /health
 
 databases:
