@@ -26,6 +26,8 @@ services:
         generateValue: true
       - key: MEDUSA_BACKEND_URL
         value: https://medusa-backend.onrender.com
+      - key: FRONTEND_URL
+        value: https://medusa-frontend-pages.pages.dev
       - key: MEDUSA_ADMIN_CORS
         value: https://medusa-frontend-pages.pages.dev,https://localhost:3000
       - key: MEDUSA_STORE_CORS

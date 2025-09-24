@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 
 interface Order {
   id: string
@@ -25,6 +26,7 @@ interface CardSecret {
 }
 
 export default function QueryOrdersPage() {
+  const router = useRouter()
   const [contactInfo, setContactInfo] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,6 +36,50 @@ export default function QueryOrdersPage() {
   const [loadingCardSecret, setLoadingCardSecret] = useState<{ [orderId: string]: boolean }>({})
   const [showCardSecret, setShowCardSecret] = useState<{ [orderId: string]: boolean }>({})
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
+
+  // 处理从支付回调跳转过来的情况
+  useEffect(() => {
+    const { email, success, orderId } = router.query
+    if (email && success === 'true') {
+      setContactInfo(email as string)
+      // 自动查询订单
+      setTimeout(() => {
+        handleAutoQuery(email as string)
+      }, 500)
+    }
+  }, [router.query])
+
+  const handleAutoQuery = async (email: string) => {
+    setLoading(true)
+    setError('')
+    setOrders([])
+
+    try {
+      const response = await fetch('/api/orders/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ contactInfo: email }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setOrders(data.orders || [])
+        setSearched(true)
+        if (data.orders && data.orders.length === 0) {
+          setError('未找到该邮箱的订单记录')
+        }
+      } else {
+        setError(data.error || '查询失败')
+      }
+    } catch (err) {
+      setError('网络错误，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -263,9 +263,10 @@ async function start() {
       })
 
       if (paymentResult.success && paymentResult.cardSecret) {
-        // 跳转到支付成功页面，显示卡密
-        const successUrl = `/success?orderId=${payId}&cardSecret=${encodeURIComponent(JSON.stringify(paymentResult.cardSecret))}`
-        return res.redirect(successUrl)
+        // 跳转到前端订单查询页面，用户可以通过邮箱查询订单
+        const frontendUrl = process.env.FRONTEND_URL || 'https://medusa-frontend-pages.pages.dev'
+        const queryUrl = `${frontendUrl}/orders/query?email=${encodeURIComponent(orderData.contactInfo)}&success=true&orderId=${payId}`
+        return res.redirect(queryUrl)
       } else {
         return res.redirect(`/payment/error?message=${encodeURIComponent(paymentResult.error || '支付处理失败')}`)
       }
