@@ -54,21 +54,48 @@ export class CardSecretService {
 
   // 加密卡密密码
   public encryptCardSecret(password: string): string {
-    const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
-    let encrypted = cipher.update(password, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
+    try {
+      const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      
+      let encrypted = cipher.update(password, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      // 将 IV 和加密数据组合
+      return iv.toString('hex') + ':' + encrypted;
+    } catch (error) {
+      console.error('Failed to encrypt card secret:', error);
+      return password; // 如果加密失败，返回原始密码
+    }
   }
 
   // 解密卡密密码
   private decryptCardSecret(encryptedPassword: string): string {
     try {
+      // 检查是否是新的加密格式
+      if (encryptedPassword.includes(':')) {
+        const parts = encryptedPassword.split(':');
+        if (parts.length === 2) {
+          const iv = Buffer.from(parts[0], 'hex');
+          const encrypted = parts[1];
+          const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+          
+          const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+          let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+          decrypted += decipher.final('utf8');
+          return decrypted;
+        }
+      }
+      
+      // 兼容旧的加密格式
       const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
       let decrypted = decipher.update(encryptedPassword, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (error) {
       console.error('Failed to decrypt card secret:', error);
+      console.error('Encrypted password:', encryptedPassword.substring(0, 20) + '...');
       return '解密失败';
     }
   }
