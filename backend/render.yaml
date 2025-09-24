@@ -27,11 +27,11 @@ services:
       - key: MEDUSA_BACKEND_URL
         value: https://medusa-backend.onrender.com
       - key: FRONTEND_URL
-        value: https://medusa-frontend-pages.pages.dev
+        value: https://medusa-frontend3.onrender.com
       - key: MEDUSA_ADMIN_CORS
-        value: https://medusa-frontend-pages.pages.dev,https://localhost:3000
+        value: https://medusa-frontend3.onrender.com,https://localhost:3000
       - key: MEDUSA_STORE_CORS
-        value: https://medusa-frontend-pages.pages.dev,https://localhost:3000
+        value: https://medusa-frontend3.onrender.com,https://localhost:3000
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
