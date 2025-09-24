@@ -264,8 +264,14 @@ async function start() {
 
       if (paymentResult.success && paymentResult.cardSecret) {
         // 跳转到前端订单查询页面，用户可以通过邮箱查询订单
-        const frontendUrl = process.env.FRONTEND_URL || 'https://medusa-frontend-pages.pages.dev'
+        const frontendUrl = process.env.FRONTEND_URL || 'https://medusa-frontend3.onrender.com'
         const queryUrl = `${frontendUrl}/orders/query?email=${encodeURIComponent(orderData.contactInfo)}&success=true&orderId=${payId}`
+        
+        console.log('🔗 Payment redirect info:')
+        console.log(`   FRONTEND_URL env: ${process.env.FRONTEND_URL}`)
+        console.log(`   Using frontendUrl: ${frontendUrl}`)
+        console.log(`   Redirecting to: ${queryUrl}`)
+        
         return res.redirect(queryUrl)
       } else {
         return res.redirect(`/payment/error?message=${encodeURIComponent(paymentResult.error || '支付处理失败')}`)
