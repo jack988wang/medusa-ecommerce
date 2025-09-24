@@ -2,16 +2,16 @@
 const crypto = require('crypto');
 import { Order, OrderQuery } from '../models/CardSecret';
 import { CardSecretService } from './CardSecretService';
-import { DatabaseService } from './DatabaseService';
+import { DatabaseAdapterService } from './DatabaseAdapter';
 
 export class OrderService {
   private cardSecretService: CardSecretService;
-  private databaseService: DatabaseService;
+  private databaseService: DatabaseAdapterService;
   private orders: Map<string, Order> = new Map();
 
   constructor() {
     this.cardSecretService = new CardSecretService();
-    this.databaseService = new DatabaseService();
+    this.databaseService = new DatabaseAdapterService();
   }
 
   // 生成订单号

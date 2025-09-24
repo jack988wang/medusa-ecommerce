@@ -125,8 +125,8 @@ export class CardSecretService {
       }
 
       // 2. 标记卡密为已售出并保存到数据库
-      const { DatabaseService } = require('./DatabaseService');
-      const databaseService = new DatabaseService();
+      const { DatabaseAdapterService } = require('./DatabaseAdapter');
+      const databaseService = new DatabaseAdapterService();
       
       availableSecret.status = 'sold';
       availableSecret.sold_at = new Date();
@@ -157,8 +157,8 @@ export class CardSecretService {
 
   // 查找可用卡密
   private async findAvailableCardSecret(productId: string): Promise<CardSecret | null> {
-    const { DatabaseService } = require('./DatabaseService');
-    const databaseService = new DatabaseService();
+    const { DatabaseAdapterService } = require('./DatabaseAdapter');
+    const databaseService = new DatabaseAdapterService();
     const availableSecrets = await databaseService.getCardSecretsByProduct(productId, 'available');
     return availableSecrets.length > 0 ? availableSecrets[0] : null;
   }
@@ -166,8 +166,8 @@ export class CardSecretService {
   // 获取产品库存数量
   async getProductStock(productId: string): Promise<number> {
     // 从数据库服务获取实时数据
-    const { DatabaseService } = require('./DatabaseService');
-    const databaseService = new DatabaseService();
+    const { DatabaseAdapterService } = require('./DatabaseAdapter');
+    const databaseService = new DatabaseAdapterService();
     const cardSecrets = await databaseService.getCardSecretsByProduct(productId, 'available');
     return cardSecrets.length;
   }
@@ -175,8 +175,8 @@ export class CardSecretService {
   // 获取产品销量
   async getProductSoldCount(productId: string): Promise<number> {
     // 从数据库服务获取实时数据
-    const { DatabaseService } = require('./DatabaseService');
-    const databaseService = new DatabaseService();
+    const { DatabaseAdapterService } = require('./DatabaseAdapter');
+    const databaseService = new DatabaseAdapterService();
     const cardSecrets = await databaseService.getCardSecretsByProduct(productId, 'sold');
     return cardSecrets.length;
   }
@@ -196,8 +196,8 @@ export class CardSecretService {
       console.log(`Looking for assigned card secret: orderId=${orderId}, productId=${productId}`);
 
       // 严格按订单查询已分配的卡密，避免重复分配
-      const { DatabaseService } = require('./DatabaseService');
-      const databaseService = new DatabaseService();
+      const { DatabaseAdapterService } = require('./DatabaseAdapter');
+      const databaseService = new DatabaseAdapterService();
       const allSecrets = await databaseService.getCardSecrets();
       const assigned = allSecrets.find((s: any) => s.order_id === orderId && s.product_id === productId);
 
