@@ -475,19 +475,21 @@ async function start() {
         await databaseService.deleteCardSecretsByProduct(id)
       }
 
-      // 删除产品
+      // 删除产品（Supabase 模式下可能是软删除）
       const ok = await databaseService.deleteProduct(id)
       if (!ok) {
         return res.status(500).json({ success: false, error: '删除产品失败' })
       }
 
-      // 复查
+      // 复查（检查是否真的被删除或标记为 inactive）
       const after = await databaseService.getProductById(id)
-      if (after) {
+      if (after && after.status === 'active') {
         return res.status(500).json({ success: false, error: '删除产品失败(仍存在)' })
       }
 
-      res.json({ success: true, message: '产品删除成功' })
+      // 判断是物理删除还是软删除
+      const message = after ? '产品已下架隐藏（存在历史订单）' : '产品删除成功'
+      res.json({ success: true, message })
     } catch (error) {
       console.error('Failed to delete product:', error)
       res.status(500).json({ success: false, error: '删除产品失败' })

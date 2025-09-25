@@ -88,13 +88,38 @@ export class SupabaseService {
 
   async deleteProduct(productId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from('products')
-        .delete()
-        .eq('id', productId)
+      // 先检查是否有订单引用该产品
+      const { data: orders, error: ordersError } = await this.supabase
+        .from('orders')
+        .select('id')
+        .eq('product_id', productId)
+        .limit(1)
 
-      if (error) throw error
-      return true
+      if (ordersError) throw ordersError
+
+      if (orders && orders.length > 0) {
+        // 如果有订单引用，改为软删除（标记为 inactive）
+        const { error } = await this.supabase
+          .from('products')
+          .update({ 
+            status: 'inactive',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', productId)
+
+        if (error) throw error
+        console.log(`Product ${productId} has orders, marked as inactive instead of deleting`)
+        return true
+      } else {
+        // 没有订单引用，可以安全删除
+        const { error } = await this.supabase
+          .from('products')
+          .delete()
+          .eq('id', productId)
+
+        if (error) throw error
+        return true
+      }
     } catch (error) {
       console.error('Failed to delete product:', error)
       return false

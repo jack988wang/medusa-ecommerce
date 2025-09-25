@@ -148,7 +148,7 @@ export default function AdminProductsPage() {
       const result = await response.json()
       
       if (result.success) {
-        alert('产品删除成功！')
+        alert(result.message || '产品删除成功！')
         fetchProducts() // 刷新产品列表
       } else {
         console.error('Delete product failed:', result)
