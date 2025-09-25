@@ -122,11 +122,25 @@ export default function AdminProductsPage() {
   }
 
   const handleDeleteProduct = async (productId: string, productTitle: string) => {
-    if (!confirm(`确定要删除产品 "${productTitle}" 吗？\n注意：如果该产品下有卡密，需要先删除所有卡密。`)) {
-      return
-    }
-
     try {
+      // 先检查该产品下是否还有卡密
+      const cardSecretsResponse = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/api/admin/products/${productId}/card-secrets`)
+      const cardSecretsData = await cardSecretsResponse.json()
+      
+      if (cardSecretsData.success && cardSecretsData.cardSecrets && cardSecretsData.cardSecrets.length > 0) {
+        const availableCount = cardSecretsData.cardSecrets.filter((cs: any) => cs.status === 'available').length
+        const usedCount = cardSecretsData.cardSecrets.filter((cs: any) => cs.status === 'sold').length
+        
+        alert(`该产品下还有 ${cardSecretsData.cardSecrets.length} 个卡密（可用: ${availableCount}, 已售: ${usedCount}），请先删除所有卡密后再删除产品。\n\n点击"管理卡密"按钮进入卡密管理页面。`)
+        return
+      }
+
+      // 确认删除
+      if (!confirm(`确定要删除产品 "${productTitle}" 吗？\n该产品下已无卡密，删除后将无法恢复。`)) {
+        return
+      }
+
+      // 执行删除
       const response = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/api/admin/products/${productId}`, {
         method: 'DELETE'
       })
@@ -137,11 +151,12 @@ export default function AdminProductsPage() {
         alert('产品删除成功！')
         fetchProducts() // 刷新产品列表
       } else {
-        alert(result.error || '删除产品失败')
+        console.error('Delete product failed:', result)
+        alert(`删除产品失败: ${result.error || '未知错误'}`)
       }
     } catch (error) {
       console.error('Failed to delete product:', error)
-      alert('删除产品失败')
+      alert('删除产品失败: 网络错误或服务器异常')
     }
   }
 
