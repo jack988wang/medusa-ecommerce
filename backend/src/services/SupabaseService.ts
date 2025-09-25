@@ -177,6 +177,21 @@ export class SupabaseService {
     }
   }
 
+  async deleteCardSecret(cardSecretId: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('card_secrets')
+        .delete()
+        .eq('id', cardSecretId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Failed to delete card secret:', error)
+      return false
+    }
+  }
+
   // 订单管理
   async getOrders(): Promise<Order[]> {
     try {

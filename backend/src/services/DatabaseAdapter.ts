@@ -128,11 +128,9 @@ export class DatabaseAdapterService implements DatabaseAdapter {
 
   async deleteCardSecret(cardSecretId: string): Promise<boolean> {
     if (this.useSupabase) {
-      // Supabase 实现暂未提供，先回退到文件系统实现以保持一致行为
-      return await this.databaseService.deleteCardSecret(cardSecretId)
-    } else {
-      return await this.databaseService.deleteCardSecret(cardSecretId)
+      return await this.supabaseService.deleteCardSecret(cardSecretId)
     }
+    return await this.databaseService.deleteCardSecret(cardSecretId)
   }
 
   async getOrders(): Promise<Order[]> {
