@@ -164,6 +164,24 @@ export default function AdminCardSecretsPage() {
     return new Date(dateString).toLocaleString('zh-CN')
   }
 
+  const handleDelete = async (cardSecretId: string) => {
+    if (!confirm('确认删除此卡密？删除后无法恢复。')) return
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/api/admin/card-secrets/${cardSecretId}` , {
+        method: 'DELETE'
+      })
+      const result = await resp.json()
+      if (result.success) {
+        fetchCardSecrets()
+      } else {
+        alert(result.error || '删除失败')
+      }
+    } catch (error) {
+      console.error('Delete failed:', error)
+      alert('网络错误，请重试')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -314,7 +332,7 @@ testuser2@gmail.com password456 质保首登"
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <button className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">
+                      <button onClick={() => handleDelete(secret.id)} className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">
                         删除
                       </button>
                     </td>
