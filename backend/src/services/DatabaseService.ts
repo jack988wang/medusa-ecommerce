@@ -237,6 +237,21 @@ export class DatabaseService {
     fs.writeFileSync(this.cardSecretsFile, JSON.stringify(cardSecrets, null, 2))
   }
 
+  async deleteCardSecret(cardSecretId: string): Promise<boolean> {
+    try {
+      const cardSecrets = await this.getCardSecrets()
+      const filtered = cardSecrets.filter(cs => cs.id !== cardSecretId)
+      if (filtered.length === cardSecrets.length) {
+        return false
+      }
+      this.saveCardSecrets(filtered)
+      return true
+    } catch (error) {
+      console.error('Failed to delete card secret:', error)
+      return false
+    }
+  }
+
   // 订单管理
   async getOrders(): Promise<Order[]> {
     try {

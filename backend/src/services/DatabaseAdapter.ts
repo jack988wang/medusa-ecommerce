@@ -12,6 +12,7 @@ export interface DatabaseAdapter {
   getCardSecretsByProduct(productId: string, status?: string): Promise<CardSecret[]>
   saveCardSecret(cardSecret: CardSecret): Promise<CardSecret>
   addCardSecret(cardSecretData: Omit<CardSecret, 'id' | 'created_at' | 'updated_at'>): Promise<CardSecret>
+  deleteCardSecret(cardSecretId: string): Promise<boolean>
   getOrders(): Promise<Order[]>
   saveOrder(order: Order): Promise<Order>
   addOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order>
@@ -122,6 +123,15 @@ export class DatabaseAdapterService implements DatabaseAdapter {
       return convertToFileSystemCardSecret(newCardSecret)
     } else {
       return await this.databaseService.addCardSecret(cardSecretData)
+    }
+  }
+
+  async deleteCardSecret(cardSecretId: string): Promise<boolean> {
+    if (this.useSupabase) {
+      // Supabase 实现暂未提供，先回退到文件系统实现以保持一致行为
+      return await this.databaseService.deleteCardSecret(cardSecretId)
+    } else {
+      return await this.databaseService.deleteCardSecret(cardSecretId)
     }
   }
 

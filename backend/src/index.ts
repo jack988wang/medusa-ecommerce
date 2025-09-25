@@ -514,6 +514,21 @@ async function start() {
     }
   })
 
+  // 删除卡密 API
+  app.delete('/api/admin/card-secrets/:id', async (req: Request, res: Response) => {
+    const { id } = req.params
+    try {
+      const ok = await databaseService.deleteCardSecret(id)
+      if (!ok) {
+        return res.status(404).json({ success: false, error: '卡密不存在' })
+      }
+      res.json({ success: true })
+    } catch (error) {
+      console.error('Failed to delete card secret:', error)
+      res.status(500).json({ success: false, error: '删除卡密失败' })
+    }
+  })
+
   app.post('/api/admin/products/:productId/card-secrets/upload', async (req: Request, res: Response) => {
     const { productId } = req.params
     const { cardSecrets } = req.body
