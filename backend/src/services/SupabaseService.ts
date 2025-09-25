@@ -192,6 +192,21 @@ export class SupabaseService {
     }
   }
 
+  async deleteCardSecretsByProduct(productId: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('card_secrets')
+        .delete()
+        .eq('product_id', productId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Failed to delete card secrets by product:', error)
+      return false
+    }
+  }
+
   // 订单管理
   async getOrders(): Promise<Order[]> {
     try {

@@ -13,6 +13,7 @@ export interface DatabaseAdapter {
   saveCardSecret(cardSecret: CardSecret): Promise<CardSecret>
   addCardSecret(cardSecretData: Omit<CardSecret, 'id' | 'created_at' | 'updated_at'>): Promise<CardSecret>
   deleteCardSecret(cardSecretId: string): Promise<boolean>
+  deleteCardSecretsByProduct(productId: string): Promise<boolean>
   getOrders(): Promise<Order[]>
   saveOrder(order: Order): Promise<Order>
   addOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order>
@@ -131,6 +132,13 @@ export class DatabaseAdapterService implements DatabaseAdapter {
       return await this.supabaseService.deleteCardSecret(cardSecretId)
     }
     return await this.databaseService.deleteCardSecret(cardSecretId)
+  }
+
+  async deleteCardSecretsByProduct(productId: string): Promise<boolean> {
+    if (this.useSupabase) {
+      return await this.supabaseService.deleteCardSecretsByProduct(productId)
+    }
+    return await this.databaseService.deleteCardSecretsByProduct(productId)
   }
 
   async getOrders(): Promise<Order[]> {

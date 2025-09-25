@@ -453,44 +453,44 @@ async function start() {
     }
   })
 
-  // 删除产品 API
+  // 删除产品 API（支持 ?force=true 级联删除卡密）
   app.delete('/api/admin/products/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    
+    const force = (req.query.force as string) === 'true'
+
     try {
       // 检查产品是否存在
       const products = await databaseService.getProducts()
       const productExists = products.find(p => p.id === id)
-      
       if (!productExists) {
-        return res.status(404).json({
-          success: false,
-          error: '产品不存在'
-        })
+        return res.status(404).json({ success: false, error: '产品不存在' })
       }
-      
-      // 检查是否有关联的卡密
+
+      // 检查或强制清理卡密
       const cardSecrets = await databaseService.getCardSecretsByProduct(id)
       if (cardSecrets.length > 0) {
-        return res.status(400).json({
-          success: false,
-          error: '该产品下还有卡密，请先删除所有卡密后再删除产品'
-        })
+        if (!force) {
+          return res.status(400).json({ success: false, error: '该产品下还有卡密，请先删除所有卡密后再删除产品' })
+        }
+        await databaseService.deleteCardSecretsByProduct(id)
       }
-      
+
       // 删除产品
-      await databaseService.deleteProduct(id)
-      
-      res.json({
-        success: true,
-        message: '产品删除成功'
-      })
+      const ok = await databaseService.deleteProduct(id)
+      if (!ok) {
+        return res.status(500).json({ success: false, error: '删除产品失败' })
+      }
+
+      // 复查
+      const after = await databaseService.getProductById(id)
+      if (after) {
+        return res.status(500).json({ success: false, error: '删除产品失败(仍存在)' })
+      }
+
+      res.json({ success: true, message: '产品删除成功' })
     } catch (error) {
       console.error('Failed to delete product:', error)
-      res.status(500).json({
-        success: false,
-        error: '删除产品失败'
-      })
+      res.status(500).json({ success: false, error: '删除产品失败' })
     }
   })
 

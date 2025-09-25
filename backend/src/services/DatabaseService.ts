@@ -252,6 +252,21 @@ export class DatabaseService {
     }
   }
 
+  async deleteCardSecretsByProduct(productId: string): Promise<boolean> {
+    try {
+      const cardSecrets = await this.getCardSecrets()
+      const filtered = cardSecrets.filter(cs => cs.product_id !== productId)
+      const changed = filtered.length !== cardSecrets.length
+      if (changed) {
+        this.saveCardSecrets(filtered)
+      }
+      return changed
+    } catch (error) {
+      console.error('Failed to delete card secrets by product:', error)
+      return false
+    }
+  }
+
   // 订单管理
   async getOrders(): Promise<Order[]> {
     try {
