@@ -50,7 +50,9 @@ export default function AdminProductsPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/api/admin/products`)
       const data = await response.json()
       if (data.success) {
-        setProducts(data.products)
+        // 只显示 active 状态的产品，过滤掉 inactive 的
+        const activeProducts = data.products.filter((product: Product) => product.status === 'active')
+        setProducts(activeProducts)
       } else {
         setError('获取产品列表失败')
       }

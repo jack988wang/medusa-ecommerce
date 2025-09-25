@@ -60,7 +60,9 @@ export default function Home() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/api/products?${params}`)
       const data = await response.json()
       if (data.success) {
-        setProducts(data.products)
+        // 只显示 active 状态的产品，过滤掉 inactive 的
+        const activeProducts = data.products.filter((product: Product) => product.status === 'active')
+        setProducts(activeProducts)
       }
     } catch (error) {
       console.error('Failed to fetch products:', error)
